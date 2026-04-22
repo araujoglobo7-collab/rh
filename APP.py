@@ -28,12 +28,13 @@ FUNCIONARIOS = [
     "MARCOS ANTONIO LIMA NASCIMENTO", "MARCOS MOISES FARIAS MENEZES", "MIGUEL DE JESUS ROCHA",
     "OSVALDO TELES JUNIOR", "PAULO JOSE DA SILVA", "RENALDO DOS SANTOS CERQUEIRA",
     "ROBERTO RODRIGUES SANTOS BARRETO", "THIAGO RAFAEL CARVALHO DE SANTANA",
-    "WELLINGTON SEBASTIAO CARVALHO QUEIROZ", "WENDERSON PRADO PINTO", "JORGE CORREIA BORGES", "ALEXANDRE DA CONCEIÇÃO", "WANDERLEY DA SILVA NASCIMENTO", "GERCI CLECIO TEIXEIRA", "ALEXANDRO SAMPAIO"
+    "WELLINGTON SEBASTIAO CARVALHO QUEIROZ", "WENDERSON PRADO PINTO", "JORGE CORREIA BORGES", 
+    "ALEXANDRE DA CONCEIÇÃO", "WANDERLEY DA SILVA NASCIMENTO", "GERCI CLECIO TEIXEIRA", "ALEXANDRO SAMPAIO"
 ]
 
 def atualizar_excel_automatico():
     try:
-        conn = sqlite3.connect(db_path)
+        conn = sqlite3.connect(str(db_path))
         df = pd.read_sql_query("SELECT id, nome, data, hora, tipo, foto_path FROM registros ORDER BY id DESC", conn)
         conn.close()
         if not df.empty:
@@ -42,7 +43,7 @@ def atualizar_excel_automatico():
         st.error(f"Feche o arquivo Excel na pasta para que eu possa atualizá-lo! Erro: {e}")
 
 def inicializar_banco():
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(str(db_path))
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS registros 
                  (id INTEGER PRIMARY KEY AUTOINCREMENT, nome TEXT, data TEXT, hora TEXT, tipo TEXT, foto_path TEXT)''')
@@ -61,7 +62,7 @@ def salvar_registro(nome, tipo, foto_bytes, data_manual=None, hora_manual=None):
         caminho_foto = str(caminho_f_obj)
     else:
         caminho_foto = "Ajuste/Edição Manual"
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(str(db_path))
     c = conn.cursor()
     c.execute("INSERT INTO registros (nome, data, hora, tipo, foto_path) VALUES (?, ?, ?, ?, ?)",
               (nome, data_f, hora_f, tipo, caminho_foto))
@@ -103,7 +104,7 @@ with aba_admin:
         filtro_nome = col_f1.multiselect("Filtrar por Funcionário", FUNCIONARIOS[1:])
         filtro_data = col_f2.text_input("Filtrar por Data (dd/mm/aaaa)", "")
 
-        conn = sqlite3.connect(db_path)
+        conn = sqlite3.connect(str(db_path))
         df = pd.read_sql_query("SELECT * FROM registros ORDER BY id DESC", conn)
         conn.close()
 
@@ -113,27 +114,24 @@ with aba_admin:
 
             for index, row in df.iterrows():
                 with st.container(border=True):
-                    # Estado de edição usando session_state
                     edit_key = f"edit_mode_{row['id']}"
                     if edit_key not in st.session_state:
                         st.session_state[edit_key] = False
 
                     c1, c2, c3, c4, c5, c6 = st.columns([1, 2.5, 2, 2, 1.5, 1.5])
                     
-                    # Foto
                     if os.path.exists(row['foto_path']):
                         c1.image(row['foto_path'], width=80)
                     else: c1.write("🚫📷")
 
                     if st.session_state[edit_key]:
-                        # MODO EDIÇÃO
                         novo_nome = c2.selectbox("Nome", FUNCIONARIOS[1:], index=FUNCIONARIOS[1:].index(row['nome']), key=f"n_{row['id']}")
                         nova_data = c3.text_input("Data", value=row['data'], key=f"d_{row['id']}")
                         nova_hora = c4.text_input("Hora", value=row['hora'], key=f"h_{row['id']}")
                         novo_tipo = c5.selectbox("Tipo", ["Entrada", "Saída"], index=0 if row['tipo']=="Entrada" else 1, key=f"t_{row['id']}")
                         
                         if c6.button("💾 Salvar", key=f"save_{row['id']}"):
-                            conn = sqlite3.connect(db_path)
+                            conn = sqlite3.connect(str(db_path))
                             c = conn.cursor()
                             c.execute("UPDATE registros SET nome=?, data=?, hora=?, tipo=? WHERE id=?", 
                                      (novo_nome, nova_data, nova_hora, novo_tipo, row['id']))
@@ -146,7 +144,6 @@ with aba_admin:
                             st.session_state[edit_key] = False
                             st.rerun()
                     else:
-                        # MODO VISUALIZAÇÃO
                         c2.markdown(f"**Funcionário:**\n{row['nome']}")
                         c3.markdown(f"**Data:**\n{row['data']}")
                         c4.markdown(f"**Hora:**\n{row['hora']}")
@@ -157,7 +154,7 @@ with aba_admin:
                             st.session_state[edit_key] = True
                             st.rerun()
                         if c6.button("🗑️ Excluir", key=f"btn_del_{row['id']}"):
-                            conn = sqlite3.connect(db_path)
+                            conn = sqlite3.connect(str(db_path))
                             c = conn.cursor()
                             c.execute("DELETE FROM registros WHERE id = ?", (row['id'],))
                             conn.commit()
@@ -179,6 +176,6 @@ with aba_admin:
 
             st.info(f"📁 Excel sempre atualizado em: {excel_path}")
             if st.button("📂 Abrir Pasta"):
-                os.startfile(pasta_documentos)
+                os.startfile(str(pasta_documentos))
     elif senha != "":
         st.error("Senha incorreta!")
