@@ -1,0 +1,4 @@
+ponto_digital.db
+relatorio_ponto_gmac.xlsx
+fotos/
+__pycache__/
